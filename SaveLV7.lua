@@ -1,98 +1,129 @@
 -- =============================================
--- FULL MAP SAVE LV7 - ANTI CRASH CAO
--- Preload chậm + Save nhẹ + Chunked
+-- FULL MAP SAVE LV7 - SKY PRELOAD + ANTI CRASH
+-- Map trung bình to - TẮT TERRAIN - Bay trên trời
 -- =============================================
 
-print("🔄 Loading Anti-Crash Full Map Saver...")
+print("🔄 Loading Sky Preload + Ultra Stable Saver...")
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Root = Character:WaitForChild("HumanoidRootPart")
+local Humanoid = Character:WaitForChild("Humanoid")
 
 local Settings = {
-    -- Preload
-    PreloadEnabled = true,
-    PreloadSpeed = 80,
-    UndergroundDepth = -400,
-    PreloadDuration = 45,           -- Giảm xuống nếu map nhỏ
-
-    -- Save Options (Quan trọng để tránh crash)
-    SaveTerrain = true,
+    -- Preload trên trời
+    SkyHeight = 800,              -- Bay cao trên trời
+    PreloadSpeed = 120,
+    PreloadDuration = 50,         -- Giây (tăng nếu map rộng)
+    ScanDistance = 2500,          -- Phạm vi quét map
+    
+    -- Save Options (Siêu ổn định)
+    SaveTerrain = false,          -- TẮT để tránh crash
     SaveUnion = true,
-    TreatUnionsAsParts = true,      -- RẤT QUAN TRỌNG: Giảm lỗi Union & crash
+    TreatUnionsAsParts = true,    -- Giảm lỗi Union & crash
     SaveMesh = true,
     SaveScripts = false,
     DecompileScripts = false,
-
-    -- Anti-Crash
+    
+    -- Anti-Crash LV8
     SafeMode = true,
-    LowMemoryMode = true,           -- Bật để giảm memory
-    ChunkedWrite = true,            -- Viết file theo chunk
-    Timeout = 300,                  -- Tăng timeout
-    DelayBeforeSave = 8,            -- Delay sau preload
+    LowMemoryMode = true,
+    ChunkedWrite = true,
+    Timeout = 240,
+    DelayBeforeSave = 6,
+    QualityLevel = 1,             -- Giảm đồ họa
 }
 
--- === STEALTH PRELOAD (Chậm & Ổn định) ===
-local function StealthPreload()
-    local Character = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
-    local Root = Character:WaitForChild("HumanoidRootPart")
-    
+-- === BAY TRÊN TRỜI (Stealth Fly) ===
+local function SkyStealthFly()
     local BV = Instance.new("BodyVelocity")
     local BG = Instance.new("BodyGyro")
-    BV.MaxForce = Vector3.new(1e5,1e5,1e5)
-    BG.MaxTorque = Vector3.new(1e5,1e5,1e5)
+    
+    BV.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    BG.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
     BV.Parent = Root
     BG.Parent = Root
     
-    game.Players.LocalPlayer.Character.Humanoid.PlatformStand = true
+    Humanoid.PlatformStand = true
     
-    print("🛫 Preload chậm & ổn định (Anti-Crash)...")
-    
-    for i = 1, Settings.PreloadDuration do
-        local pos = Root.Position
-        BV.Velocity = Vector3.new(50, Settings.UndergroundDepth - pos.Y, 30)
-        BG.CFrame = CFrame.new(pos)
-        
-        if i % 8 == 0 then
-            print("📍 Preload: " .. math.floor((i/Settings.PreloadDuration)*100) .. "%")
+    -- Tắt va chạm
+    for _, v in pairs(Character:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.CanCollide = false
         end
-        task.wait(0.6)  -- Delay cao hơn để tránh lag spike
+    end
+    
+    print("🛫 Bay trên trời cao - Preload map...")
+    
+    local startPos = Root.Position
+    local directions = {
+        Vector3.new(1, 0, 0),
+        Vector3.new(-1, 0, 1),
+        Vector3.new(1, 0, -1),
+    }
+    
+    for phase = 1, 4 do
+        for _, dir in pairs(directions) do
+            for i = 1, 12 do
+                local target = startPos + dir * Settings.ScanDistance * (i / 12) + Vector3.new(0, Settings.SkyHeight, 0)
+                BV.Velocity = (target - Root.Position) * Settings.PreloadSpeed
+                BG.CFrame = CFrame.new(Root.Position)
+                
+                task.wait(0.4)
+            end
+        end
+        print("📍 Preload phase " .. phase .. "/4 hoàn tất")
     end
     
     BV:Destroy()
     BG:Destroy()
-    print("✅ Preload xong!")
+    Humanoid.PlatformStand = false
+    print("✅ Preload trên trời xong!")
 end
 
--- === MAIN SAVE ===
+-- === SAVE FUNCTION ===
 local function StartSave()
-    print("🔄 Bắt đầu save full map (Low Memory Mode)...")
+    print("🔄 Bắt đầu save full map (Ultra Low Memory)...")
     
-    local synsave = loadstring(game:HttpGet("https://raw.githubusercontent.com/verysigmapro/UniversalSynSaveInstance-With-Save-Terrain/main/saveinstance_rewrite.luau", true))()
+    local success, SaveInstance = pcall(function()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/luau/UniversalSynSaveInstance/main/saveinstance.lua", true))()
+    end)
+    
+    if not success then
+        warn("❌ Không load được repo chính. Dùng fork thay thế.")
+        return
+    end
     
     local Options = {
         SaveAll = true,
         SaveTerrain = Settings.SaveTerrain,
         SaveUnion = Settings.SaveUnion,
         SaveMesh = Settings.SaveMesh,
-        TreatUnionsAsParts = Settings.TreatUnionsAsParts,   -- Giảm crash Union
-        DecompileScripts = false,
-        SafeMode = true,
-        LowMemoryMode = true,          -- Option chống crash
-        ChunkedWrite = true,           -- Viết file theo từng phần
+        TreatUnionsAsParts = Settings.TreatUnionsAsParts,
+        DecompileScripts = Settings.DecompileScripts,
+        SafeMode = Settings.SafeMode,
+        LowMemoryMode = Settings.LowMemoryMode,
+        ChunkedWrite = Settings.ChunkedWrite,
         Timeout = Settings.Timeout,
         ShowProgress = true,
-        FileName = "FullMap_AntiCrash_" .. game.PlaceId .. "_" .. os.date("%H%M%S"),
+        FileName = "FullMap_SkyPreload_" .. game.PlaceId .. "_" .. os.date("%H%M%S"),
     }
     
-    synsave(Options)
+    SaveInstance(Options)
 end
 
--- === CHẠY ===
-settings().Rendering.QualityLevel = 1   -- Giảm chất lượng để tiết kiệm RAM
+-- === MAIN EXECUTION ===
+settings().Rendering.QualityLevel = Settings.QualityLevel
 
-if Settings.PreloadEnabled then
-    StealthPreload()
-end
+-- Preload trước
+SkyStealthFly()
 
+-- Delay trước save
 task.wait(Settings.DelayBeforeSave)
 
+-- Save
 StartSave()
 
-print("🎉 Script chạy xong. Nếu vẫn crash thì thử tắt SaveTerrain trước.")
+print("🎉 Script hoàn tất. File lưu trong thư mục exploit.")
+print("💡 Nếu vẫn crash: Giảm PreloadDuration hoặc TreatUnionsAsParts = false")
