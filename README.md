@@ -12,4 +12,4 @@ Script save map mạnh nhất hiện tại (2026), hỗ trợ **Terrain full**, 
 ### Loadstring nhanh:
 
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/YOURUSERNAME/Roblox-FullMap-Save-LV7/main/SaveLV7.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Son2k13bskb/Roblox-FullMap-Save-LV7/main/SaveLV7.lua"))()
