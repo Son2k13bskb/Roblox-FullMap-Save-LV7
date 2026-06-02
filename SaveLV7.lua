@@ -14,9 +14,9 @@ local Humanoid = Character:WaitForChild("Humanoid")
 
 local Settings = {
     RiseHeight = 280,
-    CircleRadius = 550,
+    CircleRadius = 600,
     RiseTime = 3.5,
-    CircleSpeed = 48,           -- Chậm & mượt
+    CircleSpeed = 70,           -- Chậm & mượt
     Revolutions = 3,
     
     -- Save
